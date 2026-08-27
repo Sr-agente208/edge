@@ -3,163 +3,142 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Edge Rewards · Automação diária</title>
+  <title>Edge Rewards</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="wrap">
+
     <!-- topo -->
     <header class="top">
       <div class="brand">
         <span class="logo">⚡</span>
         <div>
           <h1>Edge Rewards</h1>
-          <p class="sub">Automação diária do Microsoft Rewards</p>
+          <p>seu Microsoft Rewards, automático</p>
         </div>
       </div>
-      <div class="badges">
-        <span id="badge-cookies" class="badge badge-off">Cookies: —</span>
-        <span id="badge-schedule" class="badge">Auto: —</span>
-        <span id="badge-running" class="badge badge-hidden">Executando…</span>
+      <div class="pills">
+        <span id="pill-session" class="pill pill-off">Sessão: —</span>
+        <span id="pill-auto" class="pill">Auto: —</span>
       </div>
     </header>
 
-    <div class="notice">
-      <strong>⚠ Atenção:</strong> automatizar o ganho de pontos pode violar os Termos de Uso do Microsoft Rewards
-      e, em tese, levar à suspensão da conta. O bot roda <em>1x por dia</em> com delays estilo humano para minimizar riscos —
-      use por sua conta e risco, apenas com a sua própria conta.
-    </div>
+    <!-- saldo + ação principal -->
+    <section class="card hero">
+      <div class="hero-stats">
+        <div class="hstat">
+          <span class="hlabel">Saldo atual</span>
+          <span class="hvalue" id="stat-balance">—</span>
+          <span class="hsub">pontos</span>
+        </div>
+        <div class="hsep"></div>
+        <div class="hstat">
+          <span class="hlabel">Último ganho</span>
+          <span class="hvalue" id="stat-gained">—</span>
+          <span class="hsub" id="stat-last">nunca executado</span>
+        </div>
+        <div class="hsep"></div>
+        <div class="hstat">
+          <span class="hlabel">Tarefas de hoje</span>
+          <span class="hvalue" id="stat-tasks">—</span>
+          <span class="hsub" id="stat-tasks-hint">pendentes</span>
+        </div>
+      </div>
 
-    <!-- cards de status -->
-    <section class="stats">
-      <div class="card stat">
-        <span class="stat-label">Saldo atual</span>
-        <span class="stat-value" id="stat-balance">—</span>
-        <span class="stat-hint" id="stat-balance-hint">pontos</span>
+      <div class="runrow">
+        <button id="btn-run" class="btn-run" disabled>▶ &nbsp;Executar agora</button>
+        <label class="force"><input type="checkbox" id="chk-force" /> forçar hoje</label>
       </div>
-      <div class="card stat">
-        <span class="stat-label">Ganho na última execução</span>
-        <span class="stat-value" id="stat-gained">—</span>
-        <span class="stat-hint" id="stat-gained-hint">pontos</span>
+      <div id="run-hint" class="run-hint"></div>
+      <p class="tose">⚠️ Automatizar pontos pode violar os Termos do Microsoft Rewards — o bot já limita a 1x/dia, com pausas naturais.</p>
+    </section>
+
+    <!-- sessão -->
+    <section class="card" id="card-session">
+      <div class="card-head">
+        <h2>🔑 Sua sessão Microsoft</h2>
+        <span id="session-status" class="badge badge-off">não configurada</span>
       </div>
-      <div class="card stat">
-        <span class="stat-label">Tarefas do dia</span>
-        <span class="stat-value" id="stat-tasks">—</span>
-        <span class="stat-hint" id="stat-tasks-hint">pendentes</span>
+
+      <!-- visão configurada (aparece quando há cookies) -->
+      <div id="session-done" class="session-done" hidden>
+        <p class="ok">✓ Sessão salva. <span id="session-detail">Clique em “Verificar de novo” para conferir o saldo.</span></p>
+        <div class="row">
+          <button id="btn-verify" class="btn-primary">Verificar de novo</button>
+          <button id="btn-change" class="btn-ghost">trocar cookies</button>
+          <button id="btn-del-cookies" class="btn-ghost danger">remover</button>
+        </div>
       </div>
-      <div class="card stat">
-        <span class="stat-label">Última execução</span>
-        <span class="stat-value small" id="stat-last">—</span>
-        <span class="stat-hint" id="stat-last-hint">nunca</span>
+
+      <!-- visão configuração (1º uso / trocar) -->
+      <div id="session-setup">
+        <p class="lead">O bot entra no painel com a sessão do seu navegador — <strong>sem senha</strong>. Só 4 passos:</p>
+        <ol class="steps">
+          <li>Entre em <a href="https://rewards.bing.com/dashboard" target="_blank" rel="noopener">rewards.bing.com/dashboard</a> no seu Edge/Chrome</li>
+          <li>Pressione <kbd>F12</kbd> → aba <b>Rede</b> → recarregue a página (<kbd>F5</kbd>)</li>
+          <li>Clique na <b>1ª requisição</b> da lista → <b>Cabeçalhos</b> → copie o valor inteiro de <code>cookie</code></li>
+          <li>Cole aqui embaixo e clique em <b>Salvar e verificar</b></li>
+        </ol>
+        <textarea id="cookie-input" rows="3" placeholder="cole aqui:  MUID=…; _SSSID=…; EDGE=…; …"></textarea>
+        <div class="row">
+          <button id="btn-save-cookies" class="btn-primary">Salvar e verificar</button>
+        </div>
+        <div id="cookie-msg" class="msg"></div>
       </div>
     </section>
 
-    <!-- barra de execução -->
-    <section class="card runbar">
-      <button id="btn-run" class="btn-run">▶ Executar agora</button>
-      <label class="force">
-        <input type="checkbox" id="chk-force" />
-        forçar (mesmo se já rodou hoje)
-      </label>
-      <span class="run-hint" id="run-hint"></span>
+    <!-- ao vivo (aparece quando roda) -->
+    <section class="card" id="card-live" hidden>
+      <div class="card-head">
+        <h2>👁️ Ao vivo</h2>
+        <span id="live-status" class="badge badge-run">executando…</span>
+      </div>
+      <div class="screen-box">
+        <img id="live-shot" alt="tela do navegador automatizado" hidden />
+        <div id="screen-placeholder" class="ph">
+          <span>🖥️</span>
+          <p>Aqui aparece a tela do navegador fazendo as tarefas.</p>
+        </div>
+      </div>
+      <div id="log" class="log"></div>
     </section>
 
-    <div class="grid">
-      <!-- coluna principal -->
-      <main>
-        <section class="card live">
-          <div class="live-head">
-            <h2>Tela ao vivo</h2>
-            <span class="live-status" id="live-status">aguardando execução</span>
-          </div>
-          <div class="screen-box">
-            <img id="live-shot" alt="tela do navegador automatizado" hidden />
-            <div id="screen-placeholder" class="screen-placeholder">
-              <span>🖥️</span>
-              <p>Durante a execução, você verá aqui a tela do navegador fazendo as tarefas.</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="live-head">
-            <h2>Logs</h2>
-            <button id="btn-clear-log" class="btn-ghost">limpar</button>
-          </div>
-          <div id="log" class="log">
-            <div class="log-line info">Bem-vindo! Salve os cookies ao lado e clique em "Executar agora".</div>
-          </div>
-        </section>
-      </main>
-
-      <!-- coluna lateral -->
-      <aside>
-        <!-- cookies -->
-        <section class="card">
-          <h2>Sessão da sua conta</h2>
-          <p class="muted">
-            O bot entra no painel usando <strong>os cookies do seu navegador</strong> (mesma sessão do seu Edge/Chrome).
-          </p>
-          <textarea id="cookie-input" rows="4" placeholder='MUID=…; _SSSID=…; EDGE=… (cole o valor completo do cabeçalho "cookie")'></textarea>
-          <div class="row">
-            <button id="btn-save-cookies" class="btn">Salvar cookies</button>
-            <button id="btn-verify" class="btn btn-ghost2">Verificar</button>
-            <button id="btn-del-cookies" class="btn btn-danger">Remover</button>
-          </div>
-          <div id="cookie-msg" class="msg"></div>
-
-          <details class="howto">
-            <summary>Como copiar os cookies (passo a passo)</summary>
-            <ol>
-              <li>No seu navegador (Edge/Chrome), <strong>login</strong> em <a href="https://rewards.bing.com/dashboard" target="_blank" rel="noopener">rewards.bing.com/dashboard</a>.</li>
-              <li>Pressione <kbd>F12</kbd> e vá até a aba <strong>Network</strong> (Rede).</li>
-              <li>Recarregue a página (F5) e clique na <strong>primeira requisição</strong> da lista (normalmente <code>dashboard</code> ou <code>getuserinfo</code>).</li>
-              <li>No painel <strong>Headers</strong> (Cabeçalhos), procure <code>cookie</code> em <strong>Request Headers</strong>.</li>
-              <li>Clone o valor inteiro (começa com <code>MUID=</code>…) e cole no campo acima → <strong>Salvar</strong>.</li>
-              <li>Clique em <strong>Verificar</strong> para testar a sessão sem gastar nada.</li>
-            </ol>
-            <p class="muted small">Se a sessão expirar (dias/semmanas), repita o processo. Os cookies ficam salvos apenas neste ambiente, fora do repositório.</p>
-          </details>
-        </section>
-
-        <!-- configuração -->
-        <section class="card">
-          <h2>Agenda &amp; ajustes</h2>
+    <!-- ajustes recolhidos -->
+    <details class="card details">
+      <summary>⚙️ Agenda e ajustes <span class="sum-hint">opcional — os padrões já são bons</span></summary>
+      <div class="details-body">
+        <div class="fields">
           <div class="field">
             <label for="inp-time">Execução diária automática</label>
-            <div class="row">
+            <div class="row2">
               <input type="time" id="inp-time" value="07:30" />
-              <label class="switch">
-                <input type="checkbox" id="chk-autorun" />
-                <span>ativada</span>
-              </label>
+              <label class="switch"><input type="checkbox" id="chk-autorun" /><span>ativada</span></label>
             </div>
-            <p class="muted small">Fuso de São Paulo. O painel precisa estar online nesse horário.</p>
+            <p class="hint">Fuso de São Paulo — o site precisa estar aberto nesse horário.</p>
           </div>
           <div class="field">
-            <label for="inp-searches">Buscas no Bing por execução</label>
+            <label for="inp-searches">Buscas no Bing por dia</label>
             <input type="number" id="inp-searches" min="1" max="20" value="10" />
           </div>
           <div class="field">
-            <label for="inp-dwell">Tempo lendo cada página (s)</label>
+            <label for="inp-dwell">Tempo “lendo” cada página (s)</label>
             <input type="number" id="inp-dwell" min="3" max="30" value="9" />
           </div>
-          <button id="btn-save-settings" class="btn btn-wide">Salvar ajustes</button>
-          <div id="settings-msg" class="msg"></div>
-        </section>
+        </div>
+        <button id="btn-save-settings" class="btn-primary">Salvar ajustes</button>
+        <div id="settings-msg" class="msg"></div>
+      </div>
+    </details>
 
-        <!-- histórico -->
-        <section class="card">
-          <h2>Histórico</h2>
-          <ul id="history" class="history"><li class="muted">Sem execuções ainda.</li></ul>
-        </section>
-      </aside>
-    </div>
+    <!-- histórico recolhido -->
+    <details class="card details">
+      <summary>🕘 Histórico <span id="hist-count" class="sum-hint"></span></summary>
+      <ul id="history" class="history"></ul>
+    </details>
 
-    <footer class="foot">
-      Edge Rewards · automação pessoal — dados e cookies ficam apenas neste ambiente (<code>data/</code>, fora do git).
-    </footer>
+    <footer class="foot">Edge Rewards · seus cookies ficam só na sua máquina (<code>data/</code>, fora do git).</footer>
   </div>
   <script src="/app.js"></script>
 </body>

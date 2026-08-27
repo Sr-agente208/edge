@@ -17,7 +17,13 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 app.use(express.json({ limit: '2mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => res.setHeader('Cache-Control', 'no-store')
+  })
+);
 
 ensureDirs();
 let state = loadState();
