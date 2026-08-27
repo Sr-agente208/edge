@@ -1,58 +1,59 @@
-/* Edge Rewards — painel (vanilla JS) */
+/* Edge Rewards — painel (2 telas: login + início) */
 const $ = (sel) => document.querySelector(sel);
 
 const els = {
+  viewLogin: $('#view-login'),
+  viewHome: $('#view-home'),
+
+  // login
+  cookieInput: $('#cookie-input'),
+  btnLogin: $('#btn-login'),
+  loginMsg: $('#login-msg'),
+
+  // home
   pillSession: $('#pill-session'),
-  pillAuto: $('#pill-auto'),
   statBalance: $('#stat-balance'),
-  statGained: $('#stat-gained'),
-  statLast: $('#stat-last'),
-  statTasks: $('#stat-tasks'),
-  statTasksHint: $('#stat-tasks-hint'),
-  statNext: $('#stat-next'),
-  statNextHint: $('#stat-next-hint'),
+  todayLine: $('#today-line'),
   btnRun: $('#btn-run'),
+  runSpinner: $('#run-spinner'),
+  runLabel: $('#run-label'),
+  runStatus: $('#run-status'),
   chkForce: $('#chk-force'),
-  runHint: $('#run-hint'),
+  btnVerify: $('#btn-verify'),
+  btnLogout: $('#btn-logout'),
   cardResult: $('#card-result'),
   resultIcon: $('#result-icon'),
   resultTitle: $('#result-title'),
   resultDetail: $('#result-detail'),
   resultShot: $('#result-shot'),
-  cardSession: $('#card-session'),
-  stepBadge: $('#step-badge'),
-  sessionStatus: $('#session-status'),
-  sessionDone: $('#session-done'),
-  sessionDetail: $('#session-detail'),
-  btnVerify: $('#btn-verify'),
-  btnChange: $('#btn-change'),
-  btnDelCookies: $('#btn-del-cookies'),
-  btnSaveCookies: $('#btn-save-cookies'),
-  cookieInput: $('#cookie-input'),
-  cookieMsg: $('#cookie-msg'),
-  cookieMsgSetup: $('#cookie-msg-setup'),
   cardLive: $('#card-live'),
   liveStatus: $('#live-status'),
   liveStep: $('#live-step'),
-  phaseBar: $('#phase-bar'),
   liveShot: $('#live-shot'),
   screenPlaceholder: $('#screen-placeholder'),
   log: $('#log'),
-  btnClearLog: $('#btn-clear-log'),
+
+  // modais
+  modalSettings: $('#modal-settings'),
+  modalHistory: $('#modal-history'),
+  btnSettings: $('#btn-settings'),
+  btnHistory: $('#btn-history'),
   inpTime: $('#inp-time'),
   chkAutorun: $('#chk-autorun'),
   inpSearches: $('#inp-searches'),
   inpDwell: $('#inp-dwell'),
   btnSaveSettings: $('#btn-save-settings'),
-  settingsMsg: $('#settings-msg'),
-  history: $('#history'),
-  histCount: $('#hist-count')
+  history: $('#history')
 };
 
 let hasCookies = false;
 let running = false;
-let lastVerify = null;
 let settings = null;
+let lastVerify = null; // {ok, availablePoints, dailySetPending, dailySetTotal, when}
+let lastRun = null;
+let historyList = [];
+let runStartTs = null;
+let timerId = null;
 let ws = null;
 
 /* ------------------------------ helpers ------------------------------ */
@@ -60,9 +61,8 @@ let ws = null;
 const fmt = (n) => (n == null ? '—' : new Intl.NumberFormat('pt-BR').format(n));
 
 function setMsg(el, text, cls) {
-  if (!el) return;
   el.textContent = text || '';
-  el.className = 'msg' + (el.classList.contains('inline') ? ' inline' : '') + (cls ? ' ' + cls : '');
+  el.className = 'msg' + (cls ? ' ' + cls : '');
 }
 
 function addLog(level, line) {
@@ -77,89 +77,84 @@ function addLog(level, line) {
   while (els.log.children.length > 500) els.log.removeChild(els.log.firstChild);
   els.log.scrollTop = els.log.scrollHeight;
 
-  // etapa atual (linhas "— Nome —")
   const step = line.match(/^\[\d{2}:\d{2}:\d{2}\] — (.+?) —$/);
-  if (step) els.liveStep.textContent = step[1].toLowerCase();
+  if (step) {
+    els.liveStep.textContent = step[1].toLowerCase();
+    if (running) tickRunStatus(step[1]);
+  }
 }
 
-function nowHm() {
-  return new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+function hhmm(d) {
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-/* ------------------------------ render ------------------------------ */
+/* ------------------------------ telas ------------------------------ */
 
-function renderState(s) {
-  if (!s) return;
-  if (typeof s.hasCookies === 'boolean') hasCookies = s.hasCookies;
-  if (typeof s.running === 'boolean') running = s.running;
-  if (s.settings) settings = s.settings;
-
-  // pills
-  els.pillSession.innerHTML = '<i class="dot"></i>' + (hasCookies ? 'Sessão: OK' : 'Sessão: ausente');
-  els.pillSession.className = 'pill ' + (hasCookies ? 'pill-on' : 'pill-off');
-  els.pillAuto.innerHTML = '<i class="dot"></i>' + (settings?.autoRun ? `Auto: ${settings.dailyTime}` : 'Auto: desligada');
-  els.pillAuto.className = 'pill' + (settings?.autoRun ? ' pill-on' : '');
-
-  // card de sessão
-  els.cardSession.classList.toggle('configured', hasCookies);
-  els.cardSession.classList.toggle('need-setup', !hasCookies);
-  els.sessionDone.hidden = !hasCookies;
-  els.stepBadge.hidden = hasCookies;
-  els.sessionStatus.textContent = hasCookies ? 'configurada' : 'não configurada';
-  els.sessionStatus.className = 'badge ' + (hasCookies ? 'badge-on' : 'badge-off');
-  if (hasCookies && lastVerify) {
-    els.sessionDetail.textContent = lastVerify.ok
-      ? `última verificação: ${fmt(lastVerify.availablePoints)} pontos · ${lastVerify.when}`
-      : `última verificação falhou · ${lastVerify.when}`;
-  }
-
-  // inputs de ajustes
-  if (settings) {
-    els.inpTime.value = settings.dailyTime || '07:30';
-    els.chkAutorun.checked = !!settings.autoRun;
-    els.inpSearches.value = settings.searchCount ?? 10;
-    els.inpDwell.value = Math.round((settings.dwellMs ?? 9000) / 1000);
-  }
-  renderNextRun();
-
-  // última execução
-  const last = s.lastRun;
-  if (last) {
-    const d = new Date(last.iso || Date.now());
-    const sameDay = d.toDateString() === new Date().toDateString();
-    els.statLast.textContent =
-      (sameDay ? 'hoje às ' : d.toLocaleDateString('pt-BR') + ' às ') +
-      d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    if (last.gained != null) els.statGained.textContent = (last.gained > 0 ? '+' : '') + fmt(last.gained);
-    if (last.after != null) els.statBalance.textContent = fmt(last.after);
-    showResult(last);
-  }
-
-  if (Array.isArray(s.history)) renderHistory(s.history);
-  setRunningUI();
+function showView(name) {
+  const isLogin = name === 'login';
+  els.viewLogin.style.display = isLogin ? 'grid' : 'none';
+  els.viewHome.hidden = !isLogin;
+  document.title = isLogin ? 'Edge Rewards · Entrar' : 'Edge Rewards';
 }
 
-function renderNextRun() {
-  if (!settings || !settings.autoRun) {
-    els.statNext.textContent = 'manual';
-    els.statNextHint.textContent = 'clique no botão quando quiser';
-    return;
+function renderTodayLine() {
+  const parts = [];
+  if (lastVerify?.ok) {
+    parts.push(`${lastVerify.dailySetPending} tarefa(s) pendente(s) hoje`);
   }
-  const [h, m] = (settings.dailyTime || '07:30').split(':').map(Number);
-  const now = new Date();
-  const target = new Date(now);
-  target.setHours(h, m, 0, 0);
-  if (target <= now) target.setDate(target.getDate() + 1);
-  const sameDay = target.toDateString() === now.toDateString();
-  els.statNext.textContent = (sameDay ? 'hoje às ' : 'amanhã às ') + target.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  els.statNextHint.textContent = 'agendado automaticamente';
+  if (lastRun) {
+    const d = new Date(lastRun.iso || Date.now());
+    const when = d.toDateString() === new Date().toDateString() ? 'hoje às ' + hhmm(d) : d.toLocaleDateString('pt-BR') + ' às ' + hhmm(d);
+    parts.push(lastRun.status === 'success' ? `última execução ${when} (+${fmt(lastRun.gained)})` : `última execução ${when} falhou`);
+  }
+  els.todayLine.textContent = parts.length
+    ? parts.join(' · ') + '.'
+    : 'Conectado — clique abaixo para fazer as tarefas de hoje.';
+}
+
+function renderBalance() {
+  const bal = lastVerify?.ok ? lastVerify.availablePoints : (lastRun?.after ?? null);
+  if (bal != null) els.statBalance.textContent = fmt(bal);
+}
+
+/* ------------------------------ execução ------------------------------ */
+
+function tickRunStatus(stage) {
+  if (!running || !runStartTs) return;
+  const sec = Math.floor((Date.now() - runStartTs) / 1000);
+  const mm = String(Math.floor(sec / 60)).padStart(2, '0');
+  const ss = String(sec % 60).padStart(2, '0');
+  els.runStatus.className = 'run-status run';
+  els.runStatus.textContent = `Rodando há ${mm}:${ss}${stage ? ' · ' + stage.toLowerCase() : ''}`;
+}
+
+function setRunningUI(on) {
+  running = on;
+  els.btnRun.disabled = on;
+  els.runSpinner.hidden = !on;
+  els.runLabel.textContent = on ? 'Executando…' : 'Iniciar automação';
+  els.cardLive.classList.toggle('done', !on);
+  els.liveStatus.innerHTML = on ? '<i class="dot pulse"></i>executando…' : '<i class="dot"></i>concluída';
+  els.liveStatus.className = 'badge ' + (on ? 'badge-run' : 'badge-on');
+  els.pillSession.innerHTML = on ? '<i class="dot pulse"></i>bot ativo' : '<i class="dot"></i>conectado';
+
+  if (on) {
+    runStartTs = Date.now();
+    els.log.innerHTML = '';
+    els.cardLive.hidden = false;
+    els.runStatus.className = 'run-status run';
+    els.runStatus.textContent = 'Iniciando…';
+    timerId = setInterval(() => tickRunStatus(), 1000);
+    setTimeout(() => els.cardLive.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  } else {
+    clearInterval(timerId);
+  }
 }
 
 function showResult(last) {
   const ok = last.status === 'success';
   const d = new Date(last.iso || Date.now());
-  const when = (d.toDateString() === new Date().toDateString() ? 'hoje às ' : d.toLocaleDateString('pt-BR') + ' às ') +
-    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const when = (d.toDateString() === new Date().toDateString() ? 'hoje às ' : d.toLocaleDateString('pt-BR') + ' às ') + hhmm(d);
   const mins = Math.round((last.durationMs || 0) / 60000);
 
   els.cardResult.hidden = false;
@@ -167,44 +162,167 @@ function showResult(last) {
   els.resultIcon.textContent = ok ? '✓' : '!';
   els.resultTitle.textContent = ok ? 'Execução concluída' : 'Execução falhou';
   els.resultDetail.textContent = ok
-    ? `+${fmt(last.gained)} pontos em ${mins < 1 ? 'menos de 1 min' : mins + ' min'} · ${when}` +
-      (last.steps?.filter((x) => x.status === 'skip').length ? ` · ${last.steps.filter((x) => x.status === 'skip').length} tarefa(s) já estava(m) completa(s)` : '')
+    ? `+${fmt(last.gained)} pontos em ${mins < 1 ? 'menos de 1 min' : mins + ' min'} · ${when}`
     : last.error || 'erro desconhecido';
 
-  if (ok || last.error) {
-    els.resultShot.hidden = false;
+  els.resultShot.hidden = !(ok || last.error);
+  if (!els.resultShot.hidden) {
     fetch('/api/screens').then((r) => r.json()).then((j) => {
       if (j.files && j.files.length) els.resultShot.href = '/api/screens/' + j.files[0];
     }).catch(() => {});
-  } else {
-    els.resultShot.hidden = true;
   }
 }
 
-function setRunningUI() {
-  els.btnRun.disabled = running || !hasCookies;
-  els.cardLive.classList.toggle('done', !running);
-  els.liveStatus.innerHTML = running
-    ? '<i class="dot pulse"></i>executando…'
-    : '<i class="dot"></i>concluída';
-  els.liveStatus.className = 'badge ' + (running ? 'badge-run' : 'badge-on');
-  els.btnSaveCookies.disabled = running;
-  els.btnVerify.disabled = running;
+/* ------------------------------ verificação ------------------------------ */
+
+async function verifySession(showOk = true) {
+  const res = await fetch('/api/verify');
+  const j = await res.json();
+  lastVerify = { ok: j.ok, availablePoints: j.availablePoints ?? null, dailySetPending: j.dailySetPending ?? null, dailySetTotal: j.dailySetTotal ?? null, when: hhmm(new Date()) };
+  renderBalance();
+  renderTodayLine();
+  if (j.ok && showOk) {
+    els.statBalance.textContent = fmt(j.availablePoints);
+    els.todayLine.textContent = `Saldo: ${fmt(j.availablePoints)} pontos · ${j.dailySetPending} tarefa(s) pendente(s) hoje.`;
+  }
+  return j;
 }
 
-function renderHistory(history) {
+/* ------------------------------ ações ------------------------------ */
+
+// LOGIN: salvar + verificar + entrar
+els.btnLogin.addEventListener('click', async () => {
+  const value = els.cookieInput.value.trim();
+  if (!value) return setMsg(els.loginMsg, 'Cole o cookie do seu navegador primeiro.', 'warn');
+  setMsg(els.loginMsg, 'Conectando…', 'warn');
+  els.btnLogin.disabled = true;
+  try {
+    const res = await fetch('/api/cookies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cookieHeader: value })
+    });
+    const j = await res.json();
+    if (!res.ok) return setMsg(els.loginMsg, j.error || 'Erro ao salvar.', 'err');
+
+    setMsg(els.loginMsg, 'Verificando sua conta…', 'warn');
+    const v = await verifySession(false);
+    if (!v.ok) {
+      setMsg(els.loginMsg, v.error || 'Não consegui validar a sessão.', 'err');
+      return;
+    }
+    hasCookies = true;
+    els.cookieInput.value = '';
+    showView('home');
+    renderTodayLine();
+    if (lastRun) showResult(lastRun);
+    window.scrollTo({ top: 0 });
+  } finally {
+    els.btnLogin.disabled = false;
+  }
+});
+els.cookieInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) els.btnLogin.click();
+});
+
+// INICIAR AUTOMAÇÃO
+els.btnRun.addEventListener('click', async () => {
+  if (running) return;
+  els.runStatus.className = 'run-status';
+  els.runStatus.textContent = 'Iniciando…';
+  try {
+    const res = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force: els.chkForce.checked })
+    });
+    const j = await res.json();
+    if (!res.ok) {
+      els.runStatus.className = 'run-status err';
+      els.runStatus.textContent = j.error || 'Erro ao iniciar.';
+      return;
+    }
+    setRunningUI(true);
+  } catch (e) {
+    els.runStatus.className = 'run-status err';
+    els.runStatus.textContent = 'Falha de rede: ' + e.message;
+  }
+});
+
+els.btnVerify.addEventListener('click', async () => {
+  els.runStatus.className = 'run-status';
+  els.runStatus.textContent = 'Verificando saldo…';
+  const v = await verifySession(true);
+  if (!v.ok) {
+    els.runStatus.className = 'run-status err';
+    els.runStatus.textContent = v.error || 'Falha ao verificar.';
+  }
+});
+
+els.btnLogout.addEventListener('click', async () => {
+  await fetch('/api/cookies', { method: 'DELETE' });
+  hasCookies = false;
+  lastVerify = null;
+  showView('login');
+});
+
+// MODAIS
+function openModal(id) { $(id).hidden = false; }
+function closeModal(el) { el.hidden = true; }
+els.btnSettings.addEventListener('click', () => {
+  if (settings) {
+    els.inpTime.value = settings.dailyTime || '07:30';
+    els.chkAutorun.checked = !!settings.autoRun;
+    els.inpSearches.value = settings.searchCount ?? 10;
+    els.inpDwell.value = Math.round((settings.dwellMs ?? 9000) / 1000);
+  }
+  openModal('#modal-settings');
+});
+els.btnHistory.addEventListener('click', () => {
+  renderHistory();
+  openModal('#modal-history');
+});
+document.querySelectorAll('.modal-overlay').forEach((ov) => {
+  ov.addEventListener('click', (e) => {
+    if (e.target === ov || e.target.closest('[data-close]')) closeModal(ov);
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') document.querySelectorAll('.modal-overlay').forEach((ov) => (ov.hidden = true));
+});
+
+els.btnSaveSettings.addEventListener('click', async () => {
+  els.btnSaveSettings.disabled = true;
+  const res = await fetch('/api/settings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      dailyTime: els.inpTime.value,
+      autoRun: els.chkAutorun.checked,
+      searchCount: Number(els.inpSearches.value),
+      dwellMs: Number(els.inpDwell.value) * 1000
+    })
+  });
+  const j = await res.json();
+  els.btnSaveSettings.disabled = false;
+  if (!res.ok) return;
+  settings = j.settings;
+  els.pillSession.title = settings.autoRun ? `Execução diária às ${settings.dailyTime}` : '';
+  closeModal(els.modalSettings);
+});
+
+function renderHistory() {
   els.history.innerHTML = '';
-  els.histCount.textContent = history.length ? `${history.length} execução(ões)` : '';
-  if (!history.length) {
+  if (!historyList.length) {
     els.history.innerHTML = '<li class="empty">Sem execuções ainda.</li>';
     return;
   }
-  for (const r of history) {
+  for (const r of historyList) {
     const li = document.createElement('li');
     const d = new Date(r.iso || Date.now());
     const date = document.createElement('span');
     date.className = 'hist-date';
-    date.textContent = `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · ${r.source === 'cron' ? 'auto' : 'manual'}`;
+    date.textContent = `${d.toLocaleDateString('pt-BR')} ${hhmm(d)} · ${r.source === 'cron' ? 'auto' : 'manual'}`;
     const gain = document.createElement('span');
     const g = r.gained;
     gain.className = 'hist-gain ' + (g == null ? 'zero' : g > 0 ? 'plus' : g < 0 ? 'minus' : 'zero');
@@ -218,126 +336,6 @@ function renderHistory(history) {
   }
 }
 
-/* ------------------------------ verificação ------------------------------ */
-
-async function verifySession() {
-  setMsg(els.cookieMsg, 'Verificando sessão…', 'warn');
-  els.btnVerify.disabled = true;
-  try {
-    const res = await fetch('/api/verify');
-    const j = await res.json();
-    lastVerify = { ok: j.ok, availablePoints: j.availablePoints ?? null, when: nowHm() };
-    if (!j.ok) {
-      setMsg(els.cookieMsg, j.error || 'Verificação falhou.', 'err');
-      return;
-    }
-    if (j.availablePoints != null) {
-      els.statBalance.textContent = fmt(j.availablePoints);
-      els.statTasks.textContent = j.dailySetPending;
-      els.statTasksHint.textContent = `de ${j.dailySetTotal} pendentes`;
-    }
-    els.sessionDetail.textContent = `sessão OK — saldo: ${fmt(j.availablePoints)} pontos · ${j.dailySetPending} tarefa(s) pendente(s) hoje`;
-    setMsg(els.cookieMsg, 'Pronto! É só clicar em “Executar agora”.', 'ok');
-  } finally {
-    if (!running) els.btnVerify.disabled = false;
-  }
-}
-
-/* ------------------------------ ações ------------------------------ */
-
-els.btnRun.addEventListener('click', async () => {
-  setMsg(els.runHint, '', '');
-  els.runHint.textContent = 'Iniciando…';
-  els.runHint.style.color = 'rgba(255,255,255,.85)';
-  try {
-    const res = await fetch('/api/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ force: els.chkForce.checked })
-    });
-    const j = await res.json();
-    if (!res.ok) {
-      els.runHint.textContent = j.error || 'Erro ao iniciar.';
-      els.runHint.style.color = '#ffd7d9';
-      return;
-    }
-    els.runHint.textContent = 'Rodando — acompanhe em “Ao vivo”.';
-    els.runHint.style.color = '#d3f5e5';
-    els.cardLive.hidden = false;
-    els.log.innerHTML = '';
-    setTimeout(() => els.cardLive.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
-  } catch (e) {
-    els.runHint.textContent = 'Falha de rede: ' + e.message;
-    els.runHint.style.color = '#ffd7d9';
-  }
-});
-
-// salvar + verificar (um clique)
-async function saveAndVerify() {
-  const value = els.cookieInput.value.trim();
-  if (!value) return setMsg(els.cookieMsgSetup, 'Cole os cookies primeiro (passos 1–3 acima).', 'warn');
-  setMsg(els.cookieMsgSetup, 'Salvando…', 'warn');
-  els.btnSaveCookies.disabled = true;
-  try {
-    const res = await fetch('/api/cookies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookieHeader: value })
-    });
-    const j = await res.json();
-    if (!res.ok) return setMsg(els.cookieMsgSetup, j.error || 'Erro ao salvar.', 'err');
-    hasCookies = true;
-    els.cookieInput.value = '';
-    renderState({ hasCookies: true });
-    await verifySession();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } finally {
-    els.btnSaveCookies.disabled = false;
-  }
-}
-
-els.btnSaveCookies.addEventListener('click', saveAndVerify);
-els.cookieInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveAndVerify();
-});
-
-els.btnVerify.addEventListener('click', verifySession);
-
-els.btnChange.addEventListener('click', () => {
-  els.cardSession.classList.add('show-setup');
-  els.cookieInput.focus();
-});
-
-els.btnDelCookies.addEventListener('click', async () => {
-  await fetch('/api/cookies', { method: 'DELETE' });
-  hasCookies = false;
-  lastVerify = null;
-  renderState({ hasCookies: false });
-});
-
-els.btnClearLog.addEventListener('click', () => { els.log.innerHTML = ''; });
-
-els.btnSaveSettings.addEventListener('click', async () => {
-  setMsg(els.settingsMsg, 'Salvando…', 'warn');
-  const res = await fetch('/api/settings', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      dailyTime: els.inpTime.value,
-      autoRun: els.chkAutorun.checked,
-      searchCount: Number(els.inpSearches.value),
-      dwellMs: Number(els.inpDwell.value) * 1000
-    })
-  });
-  const j = await res.json();
-  if (!res.ok) return setMsg(els.settingsMsg, 'Erro ao salvar.', 'err');
-  settings = j.settings;
-  renderNextRun();
-  els.pillAuto.innerHTML = '<i class="dot"></i>' + (j.settings.autoRun ? `Auto: ${j.settings.dailyTime}` : 'Auto: desligada');
-  els.pillAuto.className = 'pill' + (j.settings.autoRun ? ' pill-on' : '');
-  setMsg(els.settingsMsg, j.settings?.autoRun ? `Ativado — rodará todo dia às ${j.settings.dailyTime}.` : 'Ajustes salvos.', 'ok');
-});
-
 /* ------------------------------ websocket ------------------------------ */
 
 function connectWS() {
@@ -348,7 +346,18 @@ function connectWS() {
     try { m = JSON.parse(ev.data); } catch { return; }
     switch (m.type) {
       case 'hello':
-        renderState(m);
+        hasCookies = !!m.hasCookies;
+        settings = m.settings || settings;
+        lastRun = m.lastRun || lastRun;
+        historyList = m.history || [];
+        if (hasCookies) {
+          showView('home');
+          renderBalance();
+          renderTodayLine();
+          if (m.lastRun) showResult(m.lastRun);
+        } else {
+          showView('login');
+        }
         break;
       case 'log':
         addLog(m.level, m.msg);
@@ -361,20 +370,26 @@ function connectWS() {
       case 'points':
         if (m.before != null) els.statBalance.textContent = fmt(m.before);
         if (m.after != null) els.statBalance.textContent = fmt(m.after);
-        if (m.gained != null) els.statGained.textContent = (m.gained > 0 ? '+' : '') + fmt(m.gained);
         if (m.dailySetPending != null) {
-          els.statTasks.textContent = m.dailySetPending;
-          els.statTasksHint.textContent = `de ${m.dailySetTotal ?? '?'} pendentes`;
+          lastVerify = { ...(lastVerify || {}), ok: true, dailySetPending: m.dailySetPending, dailySetTotal: m.dailySetTotal, availablePoints: m.before ?? lastVerify?.availablePoints };
+          renderTodayLine();
         }
         break;
       case 'run-state':
-        running = !!m.running;
-        setRunningUI();
-        if (m.running) {
-          els.cardLive.hidden = false;
-          els.cardLive.classList.remove('done');
+        setRunningUI(!!m.running);
+        if (m.lastRun) {
+          lastRun = m.lastRun;
+          renderTodayLine();
+          renderBalance();
+          if (!m.running) {
+            const ok = m.lastRun.status === 'success';
+            els.runStatus.className = 'run-status ' + (ok ? 'ok' : 'err');
+            els.runStatus.textContent = ok
+              ? `Concluído: +${fmt(m.lastRun.gained)} pontos`
+              : 'Falhou — veja o motivo abaixo.';
+            showResult(m.lastRun);
+          }
         }
-        if (m.lastRun) renderState({ lastRun: m.lastRun });
         break;
       case 'cookies-saved':
         hasCookies = true;
@@ -390,9 +405,19 @@ function connectWS() {
 (async function boot() {
   try {
     const res = await fetch('/api/state');
-    renderState(await res.json());
+    const s = await res.json();
+    hasCookies = s.hasCookies;
+    settings = s.settings;
+    lastRun = s.lastRun;
+    historyList = s.history;
+    showView(hasCookies ? 'home' : 'login');
+    if (hasCookies) {
+      renderBalance();
+      renderTodayLine();
+      if (s.lastRun) showResult(s.lastRun);
+    }
   } catch {
-    addLog('warn', 'Sem resposta do servidor ainda — tentando reconectar…');
+    /* ws vai reconectar */
   }
   connectWS();
 })();
