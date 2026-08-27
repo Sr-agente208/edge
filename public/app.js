@@ -65,6 +65,11 @@ function applyStaticMode() {
   if (notice) notice.hidden = false;
   els.btnLogin.disabled = true;
   els.cookieInput.disabled = true;
+  // blindagem extra: nunca deixa modal "preso" aberto nesse modo (mesmo com CSS em cache antigo)
+  document.querySelectorAll('.modal-overlay').forEach((m) => {
+    m.hidden = true;
+    m.style.display = 'none';
+  });
 }
 
 /* ------------------------------ helpers ------------------------------ */
