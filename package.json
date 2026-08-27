@@ -1,0 +1,23 @@
+{
+  "name": "edge-rewards",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Site que automatiza as recompensas diárias do Microsoft Rewards (Edge/Bing) com painel de controle",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "node postinstall.js",
+    "smoke": "node test/smoke.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "playwright": "^1.49.0",
+    "ws": "^8.18.0"
+  }
+}

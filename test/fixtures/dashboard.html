@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>Painel (fixture)</title>
+<style>
+  body { font-family: sans-serif; background: #f5f7fa; margin: 0; padding: 24px; }
+  .card { background: #fff; border: 1px solid #dfe5ec; border-radius: 12px; padding: 16px; margin-bottom: 16px; max-width: 720px; }
+  h2 { margin: 0 0 12px; font-size: 15px; }
+  .tile { display: block; width: 100%; text-align: left; background: #f0f4f8; border: 1px solid #d5dde7;
+          border-radius: 10px; padding: 14px; margin: 8px 0; cursor: pointer; font-size: 14px; }
+  .tile .pts { float: right; color: #0b6bcb; font-weight: 600; }
+  .tile.done { background: #e7f6ec; border-color: #9fd8b4; }
+  .balance { font-size: 22px; font-weight: 700; }
+  .cell { display: inline-grid; place-items: center; width: 44px; height: 44px; margin: 4px; border-radius: 50%;
+          background: #eef1f5; border: 1px solid #cfd8e3; cursor: pointer; font-weight: 600; }
+  .cell.done { background: #dbeafe; border-color: #93c5fd; }
+  .checkin { background: #0b6bcb; color: #fff; border: 0; border-radius: 10px; padding: 12px 22px; font-size: 15px; cursor: pointer; }
+  .checkin.done { background: #34a853; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="balance" id="balance">Você tem 1.234 pontos</div>
+    <button class="checkin" id="btn-checkin" onclick="this.classList.add('done'); this.textContent='Check-in concluído';">Fazer check-in</button>
+  </div>
+
+  <div class="card">
+    <h2>Tarefas do dia</h2>
+    <button class="tile" id="tile-search" onclick="this.classList.add('done');"><span>Pesquisar na web</span><span class="pts">+10 pts</span></button>
+    <button class="tile" id="tile-news" onclick="this.classList.add('done');"><span>Leia uma notícia</span><span class="pts">+5 pts</span></button>
+    <button class="tile" id="tile-quiz" onclick="this.classList.add('done');"><span>Complete o quiz</span><span class="pts">+10 pts</span></button>
+  </div>
+
+  <div class="card">
+    <h2>Punch card de outubro</h2>
+    <div id="punch">
+      <span class="cell done">1</span><span class="cell" id="cell-2">2</span><span class="cell">3</span>
+      <span class="cell">4</span><span class="cell">5</span><span class="cell">6</span><span class="cell">7</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Mais promoções</h2>
+    <button class="tile" id="tile-promo" onclick="this.classList.add('done');"><span>Assista à oferta</span><span class="pts">+15 pts</span></button>
+  </div>
+</body>
+</html>
