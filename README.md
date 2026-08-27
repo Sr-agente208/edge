@@ -29,11 +29,26 @@ Durante a execução o dashboard mostra a **tela ao vivo** do navegador e os **l
 
 ## Como rodar
 
-### Requisitos
-- **Node.js 18+** (recomendado 20+) — <https://nodejs.org>
-- Internet liberada para `bing.com` / `microsoft.com` (obvio, mas o bot roda onde você der play)
+### No Windows (mais fácil — não precisa instalar nada)
 
-### Instalação e execução
+1. No [repositório](https://github.com/Sr-agente208/edge), clique em **Code** → **Download ZIP** e extraia a pasta.
+2. Dê **dois cliques em `iniciar.bat`**. Ele cuida de tudo sozinho:
+   - se você **não tem Node.js**, baixa o Node v22 (LTS) direto pra dentro da pasta (1x só, ~36 MB);
+   - instala as dependências (`npm install`, 1x só);
+   - baixa o navegador do robô (Playwright Chromium, 1x só);
+   - liga o painel e **abre `http://localhost:3000` no navegador**.
+3. Cole o seu cookie na tela de login → **Entrar** → **Iniciar automação**.
+
+> Se o Windows perguntar sobre o firewall, clique em “Permitir acesso”.
+> Para parar, feche a janela do `iniciar.bat`.
+
+### No Mac / Linux
+
+```bash
+./iniciar.sh   # exige Node.js 18+ (brew install node / nvm install --lts)
+```
+
+### Se você já tem Node.js
 
 ```bash
 npm install     # no Windows/mac também baixa o Chromium automaticamente (postinstall)
@@ -44,7 +59,7 @@ Depois abra **http://localhost:3000** no navegador.
 
 | Sistema | Observação |
 |---|---|
-| **Windows** | O `npm install` já baixa o Chromium (Playwright). Se não baixar, rode `npx playwright install chromium`. Atalho: dê dois cliques em `iniciar.bat`. |
+| **Windows** | `iniciar.bat` auto-instala Node + Chromium. Se algo não baixar, rode `npx playwright install chromium`. |
 | **Linux** | Usa o Chromium embutido no pacote npm (não depende de CDN). Atalho: `./iniciar.sh`. |
 | **macOS** | Igual ao Windows (`npx playwright install chromium` se precisar). |
 

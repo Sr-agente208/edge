@@ -4,7 +4,9 @@ set -e
 cd "$(dirname "$0")"
 
 if ! command -v node >/dev/null 2>&1; then
-  echo "[ERRO] Node.js nao encontrado. Instale em https://nodejs.org"
+  echo "[ERRO] Node.js nao encontrado."
+  echo "  macOS:  brew install node"
+  echo "  Linux:  https://nodejs.org  (ou nvm install --lts)"
   exit 1
 fi
 
@@ -13,5 +15,6 @@ if [ ! -d node_modules ]; then
   npm install
 fi
 
-echo "[2/2] Subindo o painel em http://localhost:3000"
+echo "[2/2] Navegador do robo (Playwright Chromium) e painel em http://localhost:3000"
+npx playwright install chromium || echo "aviso: fallback para o Chromium embutido do pacote (Linux)"
 exec node server.js
