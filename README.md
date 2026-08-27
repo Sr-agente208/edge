@@ -66,6 +66,20 @@ Depois abra **http://localhost:3000** no navegador.
 > O bot precisa estar rodando na máquina que tem acesso à sua sessão e à internet
 > (ex.: seu PC, ligado no horário da execução automática).
 
+### Usando pelo celular 📱
+
+O robô roda no PC; o celular vira **controle remoto** (ver saldo, acompanhar a tela ao
+vivo, iniciar/parar, ver histórico):
+
+- **No mesmo Wi-Fi do PC** — o painel mostra o endereço do celular na própria tela
+  (linha “📱 No mesmo Wi-Fi…”, que também aparece na janela do `iniciar.bat`). É só
+  abrir esse endereço no navegador do celular.
+- **Em qualquer lugar (fora de casa)** — instale o **Tailscale** (gratuito) no PC e no
+  celular, entre com a mesma conta nos dois e use o IP Tailscale do PC:
+  `http://IP-DO-PC-Tailscale:3000`. Túnel criptografado, sem mexer no roteador.
+- **Obs.:** o cookie é colado **1x no PC** (o F12 não existe em celular). Depois disso,
+  tudo pode ser acompanhado e comandado pelo celular.
+
 ---
 
 ## Passo 1 — Colocar a sessão (cookies)

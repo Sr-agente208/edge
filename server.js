@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'node:http';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
@@ -45,8 +46,20 @@ function publicState() {
     spToday: spToday(),
     settings: state.settings,
     lastRun: state.lastRun,
-    history: state.history.slice(0, 15)
+    history: state.history.slice(0, 15),
+    lanUrl: lanUrl()
   };
+}
+
+/** URL para abrir o painel do celular (mesma rede Wi-Fi do PC). */
+function lanUrl() {
+  const ifs = os.networkInterfaces();
+  for (const list of Object.values(ifs)) {
+    for (const i of list || []) {
+      if ((i.family === 'IPv4' || i.family === 4) && !i.internal) return `http://${i.address}:${PORT}`;
+    }
+  }
+  return null;
 }
 
 /* ------------------------------- rotas ------------------------------- */
@@ -202,5 +215,7 @@ wss.on('connection', (ws) => {
 const PORT = Number(process.env.PORT || 3000);
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[edge-rewards] Painel no ar: http://localhost:${PORT}`);
+  const lan = lanUrl();
+  if (lan) console.log(`[edge-rewards] Celular no mesmo Wi-Fi? Abra: ${lan}`);
   console.log('[edge-rewards] ⚠ Lembrete: automatizar pontos pode violar os Termos do Microsoft Rewards. Rode no máximo 1x/dia.');
 });

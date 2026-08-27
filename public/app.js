@@ -32,6 +32,8 @@ const els = {
   liveShot: $('#live-shot'),
   screenPlaceholder: $('#screen-placeholder'),
   log: $('#log'),
+  lanHint: $('#lan-hint'),
+  lanUrl: $('#lan-url'),
 
   // modais
   modalSettings: $('#modal-settings'),
@@ -126,6 +128,13 @@ function renderTodayLine() {
   els.todayLine.textContent = parts.length
     ? parts.join(' · ') + '.'
     : 'Conectado — clique abaixo para fazer as tarefas de hoje.';
+}
+
+function renderLanHint(url) {
+  if (!url) return;
+  els.lanUrl.textContent = url;
+  els.lanUrl.href = url;
+  els.lanHint.hidden = false;
 }
 
 function renderBalance() {
@@ -366,6 +375,7 @@ function connectWS() {
         settings = m.settings || settings;
         lastRun = m.lastRun || lastRun;
         historyList = m.history || [];
+        renderLanHint(m.lanUrl);
         if (hasCookies) {
           showView('home');
           renderBalance();
@@ -431,6 +441,7 @@ function connectWS() {
     settings = s.settings;
     lastRun = s.lastRun;
     historyList = s.history;
+    renderLanHint(s.lanUrl);
     showView(hasCookies ? 'home' : 'login');
     if (hasCookies) {
       renderBalance();
