@@ -5,109 +5,172 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Edge Rewards</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="wrap">
 
     <!-- topo -->
-    <header class="top">
+    <header class="top fade">
       <div class="brand">
-        <span class="logo">⚡</span>
+        <span class="logo">
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </span>
         <div>
           <h1>Edge Rewards</h1>
-          <p>seu Microsoft Rewards, automático</p>
+          <p>Microsoft Rewards no automático</p>
         </div>
       </div>
       <div class="pills">
-        <span id="pill-session" class="pill pill-off">Sessão: —</span>
-        <span id="pill-auto" class="pill">Auto: —</span>
+        <span id="pill-session" class="pill pill-off"><i class="dot"></i>Sessão: —</span>
+        <span id="pill-auto" class="pill"><i class="dot"></i>Auto: —</span>
       </div>
     </header>
 
-    <!-- saldo + ação principal -->
-    <section class="card hero">
-      <div class="hero-stats">
-        <div class="hstat">
-          <span class="hlabel">Saldo atual</span>
-          <span class="hvalue" id="stat-balance">—</span>
-          <span class="hsub">pontos</span>
+    <!-- hero (gradiente) -->
+    <section class="hero fade d1">
+      <div class="hero-top">
+        <div>
+          <span class="hero-kicker">PAINEL DE AUTOMAÇÃO</span>
+          <div class="hero-balance">
+            <span class="hero-balance-label">Saldo atual</span>
+            <span class="hero-balance-value" id="stat-balance">—</span>
+            <span class="hero-balance-unit">pontos</span>
+          </div>
         </div>
-        <div class="hsep"></div>
+        <button id="btn-run" class="btn-run" disabled>
+          <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3"/></svg>
+          Executar agora
+        </button>
+      </div>
+
+      <div class="hero-stats">
         <div class="hstat">
           <span class="hlabel">Último ganho</span>
           <span class="hvalue" id="stat-gained">—</span>
           <span class="hsub" id="stat-last">nunca executado</span>
         </div>
-        <div class="hsep"></div>
         <div class="hstat">
           <span class="hlabel">Tarefas de hoje</span>
           <span class="hvalue" id="stat-tasks">—</span>
           <span class="hsub" id="stat-tasks-hint">pendentes</span>
         </div>
+        <div class="hstat">
+          <span class="hlabel">Próxima execução</span>
+          <span class="hvalue small" id="stat-next">manual</span>
+          <span class="hsub" id="stat-next-hint">clique no botão quando quiser</span>
+        </div>
       </div>
 
-      <div class="runrow">
-        <button id="btn-run" class="btn-run" disabled>▶ &nbsp;Executar agora</button>
-        <label class="force"><input type="checkbox" id="chk-force" /> forçar hoje</label>
+      <div class="hero-foot">
+        <label class="force"><input type="checkbox" id="chk-force" /> forçar (já rodou hoje)</label>
+        <span class="tose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          automação pode violar os Termos — limite de 1x/dia já aplicado
+        </span>
       </div>
       <div id="run-hint" class="run-hint"></div>
-      <p class="tose">⚠️ Automatizar pontos pode violar os Termos do Microsoft Rewards — o bot já limita a 1x/dia, com pausas naturais.</p>
+    </section>
+
+    <!-- resultado da última execução -->
+    <section class="result fade d2" id="card-result" hidden>
+      <div class="result-icon ok" id="result-icon">✓</div>
+      <div class="result-body">
+        <strong id="result-title">Concluído</strong>
+        <span id="result-detail"></span>
+      </div>
+      <a id="result-shot" class="result-link" target="_blank" rel="noopener" hidden>ver última tela ↗</a>
     </section>
 
     <!-- sessão -->
-    <section class="card" id="card-session">
+    <section class="card session fade d2" id="card-session">
       <div class="card-head">
-        <h2>🔑 Sua sessão Microsoft</h2>
+        <div class="card-title">
+          <span class="card-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+          </span>
+          <h2>Sua sessão Microsoft</h2>
+          <span class="step-badge" id="step-badge">passo 1 — faça primeiro</span>
+        </div>
         <span id="session-status" class="badge badge-off">não configurada</span>
       </div>
 
-      <!-- visão configurada (aparece quando há cookies) -->
+      <!-- já configurado -->
       <div id="session-done" class="session-done" hidden>
-        <p class="ok">✓ Sessão salva. <span id="session-detail">Clique em “Verificar de novo” para conferir o saldo.</span></p>
+        <p class="ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Sessão salva — <span id="session-detail">clique em “Verificar” para conferir o saldo.</span>
+        </p>
         <div class="row">
-          <button id="btn-verify" class="btn-primary">Verificar de novo</button>
-          <button id="btn-change" class="btn-ghost">trocar cookies</button>
-          <button id="btn-del-cookies" class="btn-ghost danger">remover</button>
-        </div>
-      </div>
-
-      <!-- visão configuração (1º uso / trocar) -->
-      <div id="session-setup">
-        <p class="lead">O bot entra no painel com a sessão do seu navegador — <strong>sem senha</strong>. Só 4 passos:</p>
-        <ol class="steps">
-          <li>Entre em <a href="https://rewards.bing.com/dashboard" target="_blank" rel="noopener">rewards.bing.com/dashboard</a> no seu Edge/Chrome</li>
-          <li>Pressione <kbd>F12</kbd> → aba <b>Rede</b> → recarregue a página (<kbd>F5</kbd>)</li>
-          <li>Clique na <b>1ª requisição</b> da lista → <b>Cabeçalhos</b> → copie o valor inteiro de <code>cookie</code></li>
-          <li>Cole aqui embaixo e clique em <b>Salvar e verificar</b></li>
-        </ol>
-        <textarea id="cookie-input" rows="3" placeholder="cole aqui:  MUID=…; _SSSID=…; EDGE=…; …"></textarea>
-        <div class="row">
-          <button id="btn-save-cookies" class="btn-primary">Salvar e verificar</button>
+          <button id="btn-verify" class="btn btn-accent">Verificar agora</button>
+          <button id="btn-change" class="btn btn-soft">trocar cookies</button>
+          <button id="btn-del-cookies" class="btn btn-soft danger">remover</button>
         </div>
         <div id="cookie-msg" class="msg"></div>
       </div>
+
+      <!-- configuração -->
+      <div id="session-setup">
+        <p class="lead">O bot entra no painel com a sessão do seu navegador — <strong>sem senha</strong>. Quatro passos rápidos:</p>
+        <ol class="steps">
+          <li><b>Entre</b> em <a href="https://rewards.bing.com/dashboard" target="_blank" rel="noopener">rewards.bing.com/dashboard</a> no seu Edge/Chrome</li>
+          <li>Pressione <kbd>F12</kbd>, abra a aba <b>Rede</b> e recarregue a página (<kbd>F5</kbd>)</li>
+          <li>Clique na <b>1ª requisição</b> → <b>Cabeçalhos</b> → copie o valor inteiro de <code>cookie</code></li>
+          <li><b>Cole aqui</b> e clique em <b>Salvar e verificar</b></li>
+        </ol>
+        <textarea id="cookie-input" rows="3" placeholder="cole aqui:  MUID=…; _SSSID=…; EDGE=…; …"></textarea>
+        <div class="row">
+          <button id="btn-save-cookies" class="btn btn-accent btn-big">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Salvar e verificar
+          </button>
+        </div>
+        <div id="cookie-msg-setup" class="msg"></div>
+      </div>
     </section>
 
-    <!-- ao vivo (aparece quando roda) -->
-    <section class="card" id="card-live" hidden>
+    <!-- ao vivo -->
+    <section class="card fade d3" id="card-live" hidden>
       <div class="card-head">
-        <h2>👁️ Ao vivo</h2>
-        <span id="live-status" class="badge badge-run">executando…</span>
+        <div class="card-title">
+          <span class="card-ico">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+          <h2>Ao vivo</h2>
+        </div>
+        <span id="live-status" class="badge badge-run"><i class="dot pulse"></i>executando…</span>
       </div>
+
+      <div class="live-phase">
+        <div class="phase-bar" id="phase-bar"><span class="phase-shine"></span></div>
+        <span class="phase-step" id="live-step">iniciando…</span>
+      </div>
+
       <div class="screen-box">
         <img id="live-shot" alt="tela do navegador automatizado" hidden />
         <div id="screen-placeholder" class="ph">
-          <span>🖥️</span>
-          <p>Aqui aparece a tela do navegador fazendo as tarefas.</p>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <p>A tela do navegador aparece aqui durante a execução.</p>
         </div>
+      </div>
+
+      <div class="log-head">
+        <span>Logs da execução</span>
+        <button id="btn-clear-log" class="btn-link">limpar</button>
       </div>
       <div id="log" class="log"></div>
     </section>
 
-    <!-- ajustes recolhidos -->
-    <details class="card details">
-      <summary>⚙️ Agenda e ajustes <span class="sum-hint">opcional — os padrões já são bons</span></summary>
+    <!-- ajustes -->
+    <details class="card details fade d3">
+      <summary>
+        <svg class="sum-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        Agenda e ajustes
+        <span class="sum-hint">os padrões já funcionam bem</span>
+      </summary>
       <div class="details-body">
         <div class="fields">
           <div class="field">
@@ -127,18 +190,26 @@
             <input type="number" id="inp-dwell" min="3" max="30" value="9" />
           </div>
         </div>
-        <button id="btn-save-settings" class="btn-primary">Salvar ajustes</button>
-        <div id="settings-msg" class="msg"></div>
+        <div class="row">
+          <button id="btn-save-settings" class="btn btn-accent">Salvar ajustes</button>
+          <span id="settings-msg" class="msg inline"></span>
+        </div>
       </div>
     </details>
 
-    <!-- histórico recolhido -->
-    <details class="card details">
-      <summary>🕘 Histórico <span id="hist-count" class="sum-hint"></span></summary>
+    <!-- histórico -->
+    <details class="card details fade d4">
+      <summary>
+        <svg class="sum-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Histórico
+        <span id="hist-count" class="sum-hint"></span>
+      </summary>
       <ul id="history" class="history"></ul>
     </details>
 
-    <footer class="foot">Edge Rewards · seus cookies ficam só na sua máquina (<code>data/</code>, fora do git).</footer>
+    <footer class="foot fade d4">
+      Edge Rewards · cookies e dados ficam só na sua máquina (<code>data/</code>) · feito para uso pessoal
+    </footer>
   </div>
   <script src="/app.js"></script>
 </body>
