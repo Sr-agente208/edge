@@ -24,6 +24,8 @@
 }
 
 * { box-sizing: border-box; }
+/* garante que o atributo hidden sempre oculta (display no CSS nunca "vaza" por cima) */
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 
 html, body {
