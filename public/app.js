@@ -56,6 +56,17 @@ let runStartTs = null;
 let timerId = null;
 let ws = null;
 
+// GitHub Pages (ou file://) = sem servidor → modo demonstração
+const isStatic = location.hostname.endsWith('.github.io') || location.protocol === 'file:';
+
+function applyStaticMode() {
+  if (!isStatic) return;
+  const notice = $('#static-notice');
+  if (notice) notice.hidden = false;
+  els.btnLogin.disabled = true;
+  els.cookieInput.disabled = true;
+}
+
 /* ------------------------------ helpers ------------------------------ */
 
 const fmt = (n) => (n == null ? '—' : new Intl.NumberFormat('pt-BR').format(n));
@@ -403,6 +414,11 @@ function connectWS() {
 /* ------------------------------ boot ------------------------------ */
 
 (async function boot() {
+  applyStaticMode();
+  if (isStatic) {
+    showView('login');
+    return; // sem servidor: não conecta WebSocket, só mostra a interface + instruções
+  }
   try {
     const res = await fetch('/api/state');
     const s = await res.json();

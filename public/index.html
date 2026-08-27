@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -32,6 +32,17 @@
       </button>
 
       <div id="login-msg" class="msg"></div>
+
+      <div id="static-notice" class="static-notice" hidden>
+        <strong>🌐 Você está na pré-visualização (GitHub Pages)</strong>
+        <span>O bot precisa de um servidor Node, que não roda em site estático. Para usar de verdade, na sua máquina:</span>
+        <ol>
+          <li>Clone o repositório <a href="https://github.com/Sr-agente208/edge" target="_blank" rel="noopener">Sr-agente208/edge</a></li>
+          <li><code>npm install</code></li>
+          <li><code>npm start</code> (ou 2x clique em <code>iniciar.bat</code> no Windows)</li>
+          <li>Abra <code>http://localhost:3000</code> — este mesmo site, agora funcionando</li>
+        </ol>
+      </div>
 
       <details class="help">
         <summary>Não sei como copiar o cookie</summary>
@@ -178,6 +189,6 @@
     </div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
